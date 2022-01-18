@@ -59,6 +59,9 @@ The sSql variable creates/designs up the following Query : **CREATE TABLE Tasks(
 
 **onUpgrade** Method is called when the database needs to be upgraded.<br>The implementation should use this method to drop tables, add tables, or do anything else it needs to upgrade to the new schema version.
 
+At last we are calling a **execSql**<br> 
+This Method executes above sql query.
+
 ## Step-3.0:Create a Singleton Class
 Singleton class only allows a single instance to be create.<br>
 To make a class singleton mark the constructor as private
