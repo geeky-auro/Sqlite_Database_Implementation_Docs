@@ -97,3 +97,4 @@ Source : https://bladecoder.medium.com/kotlin-singletons-with-argument-194ef06ed
 companion object : SingletonHolder<AppDatabase, Context>(::AppDatabase)
  ```
 ### Next Step,is to use a **content provider**!
+
