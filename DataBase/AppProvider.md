@@ -1,12 +1,14 @@
 # AppProvider
 Content Provider for the TaskTimer app.This is the only class that knows about the **[AppDatabase]**
 
+<img src="https://developer.android.com/guide/topics/providers/images/content-provider-overview.png" alt="content Provider" />
+
 ## What are Content Providers?
 Content Providers are a very important component that serves the purpose of a relational database to store the data of applications.<br>
 The role of the content provider in the android system is like a central repository in which data of the applications are stored,<br>
 and it facilitates other applications to securely access and modifies that data based on the user requirements.<br>
 
-In order to share the data, content providers have certain permissions that are used to grant or restrict the rights to other applications to interfere with the data.
+In order to share the data, content providers have certain permissions that are used to grant or restrict the rights to other applications to interfere with the data.<br>
 
 <img src="https://media.geeksforgeeks.org/wp-content/uploads/20200914015720/StructureofContentProvider-660x403.png" alt="Content Provider"/>
 
@@ -57,6 +59,7 @@ The following are two example URIs and their component parts:
          urn:example:animal:ferret:nose
 
 For More Information refer : https://datatracker.ietf.org/doc/html/rfc3986#section-3 <br>
+You need to define your content provider URI address which will be used to access the content <br>
 Variable Declaration in AppProvider:
 ```
   const val CONTENT_AUTHORITY = "com.aurosaswatraj.tasktimer.provider"
@@ -77,6 +80,326 @@ Content providers are created on the application main thread at application laun
 **Declare a class AppProvider and inherit the class ContentProvider()**
 ```
   class AppProvider : ContentProvider(){
-<!--  Here Comes the Body part Refer Step-3 ..!  -->
+<!--  Here Comes the Body part Refer Step-2 ..!  -->
   }
 ```
+Next you will need to create your own database to keep the content.<br>
+Usually, Android uses SQLite database and framework needs to override **onCreate()** method which will use SQLite Open Helper method to create or open the provider's database.<br> When your application is launched, the **onCreate()** handler of each of its Content Providers is called on the main application thread.<br>
+
+Next you will have to **implement/override** Content Provider queries to perform different database specific operations.<br>
+**onCreate()** This method is called when the provider is started.We cannot create our database instance as it can only be accessed by getInstance method<br>
+**query()** This method receives a request from a client. The result is returned as a Cursor object.<br>
+**insert()** This method inserts a new record into the content provider.<br>
+**delete()** This method deletes an existing record from the content provider.<br>
+**update()** This method updates an existing record from the content provider.<br>
+**getType()** This method returns the MIME type of the data at the given URI.<br>
+And that's what we are going to implement in Step2.1..
+## Step 2.1: **Implementing/Overriding** all the useful Methods
+Before Overriding all The Functions we build a URI Matcher funtion to arrange out URI and return the correct URI :-<br>
+```
+        private fun buildUriMatcher(): UriMatcher {
+
+//      to match the content URI every time user access table under content provider
+        val matcher = UriMatcher(UriMatcher.NO_MATCH)
+            
+//      to access whole table
+//      e.g. content://com.aurosaswatraj.tasktimer.provider/Tasks
+        matcher.addURI(CONTENT_AUTHORITY, TasksContract.TABLE_NAME, TASKS)
+
+//      to access a particular row of the table
+//      e.g. content://com.aurosaswatraj.tasktimer.provider/Tasks/8
+        matcher.addURI(CONTENT_AUTHORITY, "${TasksContract.TABLE_NAME}/#", TASKS_ID)
+
+        matcher.addURI(CONTENT_AUTHORITY, TimingsContract.TABLE_NAME, TIMINGS)
+        matcher.addURI(CONTENT_AUTHORITY, "${TimingsContract.TABLE_NAME}/#", TIMINGS_ID)
+
+        return matcher
+    }
+```
+Moving towards the next step..! <br>
+Then create a variable which saves/creates an instance<br>
+> by lazy()-Sometimes we need to construct objects that have a cumbersome initialization process. Also, often we cannot be sure that the object, for which we paid the cost of initialization at the start of our program, will be used in our program at all.
+The concept of ‘lazy initialization’ was designed to prevent unnecessary initialization of objects.
+            
+``` 
+            private val uriMatcher by lazy { buildUriMatcher() }
+```
+<img src="https://img.shields.io/badge/-Override%20Member%20Methods-%23557C55" alt="Override Member" />
+
+```
+ override fun onCreate(): Boolean {
+        /**We cannot create our database instance as it can only be accessed by getInstance method*/
+        return true
+    }
+            override fun query(
+        uri: Uri,
+        projection: Array<out String>?,
+        selection: String?,
+        selectionArgs: Array<out String>?,
+        sortOrder: String?
+    ): Cursor? {
+        Log.d(TAG, "query called with uri $uri")
+        val match = uriMatcher.match(uri)
+        //        matcher is used to decide what matcher has been passed.>!
+        Log.d(TAG, "query match is $match")
+//        use a query builder to build the query that will be executed by the database
+        val queryBuilder = SQLiteQueryBuilder()
+//        Copy paste the code..!
+        when (match) {
+            TASKS -> queryBuilder.tables = TasksContract.TABLE_NAME // SELECT ______ FROM Tasks
+
+            TASKS_ID -> {
+                queryBuilder.tables = TasksContract.TABLE_NAME // SELECT _____ FROM Tasks
+                val taskId = TasksContract.getId(uri) // Long of our taskId. E.g. 1
+                queryBuilder.appendWhere("${TasksContract.Columns.ID} = ") // SELECT ______ FROM Tasks WHERE (_id =)      // <-- change method
+                queryBuilder.appendWhereEscapeString("$taskId") // SELECT ______ FROM Tasks WHERE (id = 'taskId')
+            }
+            //queryBuilder.appendWhereEscapeString() is used to append values not append entire where clause
+            TIMINGS -> queryBuilder.tables = TimingsContract.TABLE_NAME
+
+            TIMINGS_ID -> {
+                queryBuilder.tables = TimingsContract.TABLE_NAME
+                val timingId = TimingsContract.getId(uri)
+                queryBuilder.appendWhere("${TimingsContract.Columns.ID} = ")   // <-- and here
+                queryBuilder.appendWhereEscapeString("$timingId")
+            }
+
+//            TASKS_DURATIONS -> queryBuilder.tables = DurationsContract.TABLE_NAME
+//
+//            TASKS_DURATIONS_ID -> {
+//                queryBuilder.tables = DurationsContract.TABLE_NAME
+//                val durationId = DurationsContract.getId(uri)
+//                queryBuilder.appendWhereEscapeString("${DurationsContract.Columns.ID} = ")   // <-- and here
+//                queryBuilder.appendWhereEscapeString("$durationId")
+//            }
+
+            else -> throw IllegalArgumentException("Unknown URI: $uri")
+        }
+
+        val db =
+            AppDatabase.getInstance(context!!).readableDatabase // Our database in "TaskTimer.db"
+        val cursor =
+            queryBuilder.query(db, projection, selection, selectionArgs, null, null, sortOrder)
+        Log.d(TAG, "query: rows in returned cursor = ${cursor.count}") // TODO remove this line
+
+        return cursor
+    }
+            override fun insert(uri: Uri, values: ContentValues?): Uri? {
+        Log.d(TAG, "insert called with uri $uri")
+//        The code for the matched node (added using addURI), or -1 if there is no matched node.
+        val match = uriMatcher.match(uri)
+        //        matcher is used to decide what matcher has been passed.>!
+        Log.d(TAG, "insert match is $match")
+        val recordId: Long
+        val returnUri: Uri
+        when (match) {
+            TASKS -> {
+                val db =
+                    AppDatabase.getInstance(context!!).writableDatabase // Our database in "TaskTimer.db"
+                recordId = db.insert(TasksContract.TABLE_NAME, null, values)
+                if (recordId != -1L) {
+                    returnUri = TasksContract.buildUriFromId(recordId)
+                } else {
+                    throw SQLException("Failed to insert,Uri was $uri")
+                }
+
+            }
+            TIMINGS -> {
+                val db = AppDatabase.getInstance(context!!).writableDatabase
+                recordId = db.insert(TimingsContract.TABLE_NAME, null, values)
+                if (recordId != -1L) {
+                    returnUri = TimingsContract.buildUriFromId(recordId)
+                } else {
+                    throw SQLException("Failed to insert,Uri was $uri")
+                }
+            }
+            else -> {
+                throw java.lang.IllegalArgumentException("Unknown uri:$uri")
+            }
+        }
+
+        if (recordId > 0) {
+            // something was inserted
+            Log.d(TAG, "insert: Setting notifyChange with $uri")
+            context?.contentResolver?.notifyChange(uri, null)
+        }
+
+
+        Log.d(TAG, "Existing insert,returning $returnUri")
+        return returnUri
+    }
+            override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int {
+        Log.d(TAG, "delete called with uri $uri")
+        val match = uriMatcher.match(uri)
+        //        matcher is used to decide what matcher has been passed.>!
+        Log.d(TAG, "delete match is $match")
+
+//        Database to count how many rows were updated?
+        var count: Int
+//        Database to know the selection criteria
+        var selectionCriteria: String
+        when (match) {
+//            performing Update against the whole table..!
+            TASKS -> {
+                val db = AppDatabase.getInstance(context!!).writableDatabase
+                count = db.delete(TasksContract.TABLE_NAME, selection, selectionArgs)
+            }
+//            Performing the update on a single row..!
+            TASKS_ID -> {
+                val db = AppDatabase.getInstance(context!!).writableDatabase
+                val id = TasksContract.getId(uri)
+                selectionCriteria = "${TasksContract.Columns.ID} = $id"
+
+                if (selection != null && selection.isNotEmpty()) {
+                    selectionCriteria += " AND ($selection)"
+                }
+
+                count = db.delete(TasksContract.TABLE_NAME, selectionCriteria, selectionArgs)
+            }
+
+            TIMINGS -> {
+                val db = AppDatabase.getInstance(context!!).writableDatabase
+                count = db.delete(TimingsContract.TABLE_NAME, selection, selectionArgs)
+            }
+//            Performing the update on a single row..!
+            TIMINGS_ID -> {
+                val db = AppDatabase.getInstance(context!!).writableDatabase
+                val id = TimingsContract.getId(uri)
+                selectionCriteria = "${TimingsContract.Columns.ID} = $id"
+
+                if (selection != null && selection.isNotEmpty()) {
+                    selectionCriteria += " AND ($selection)"
+                }
+
+                count = db.delete(TimingsContract.TABLE_NAME, selectionCriteria, selectionArgs)
+            }
+
+
+            else -> {
+                throw IllegalArgumentException("Unknown URI:$uri")
+            }
+
+        }
+            if (count > 0) {
+            // something was deleted
+            Log.d(TAG, "delete: Setting notifyChange with $uri")
+            context?.contentResolver?.notifyChange(uri, null)
+        }
+
+        Log.d(TAG, "Exiting delete, returning $count")
+        return count
+
+    }
+             override fun update(
+        uri: Uri,
+        values: ContentValues?,
+        selection: String?,
+        selectionArgs: Array<out String>?
+    ): Int {
+        Log.d(TAG, "update called with uri $uri")
+        val match = uriMatcher.match(uri)
+        //        matcher is used to decide what matcher has been passed.>!
+        Log.d(TAG, "update match is $match")
+
+//        Database to count how many rows were updated?
+        var count: Int
+//        Database to know the selection criteria
+        var selectionCriteria: String
+        when (match) {
+//            performing Update against the whole table..!
+            TASKS -> {
+                val db = AppDatabase.getInstance(context!!).writableDatabase
+                count = db.update(TasksContract.TABLE_NAME, values, selection, selectionArgs)
+            }
+//            Performing the update on a single row..!
+            TASKS_ID -> {
+                val db = AppDatabase.getInstance(context!!).writableDatabase
+                val id = TasksContract.getId(uri)
+                selectionCriteria = "${TasksContract.Columns.ID} = $id"
+
+                if (selection != null && selection.isNotEmpty()) {
+                    selectionCriteria += " AND ($selection)"
+                }
+
+                count =
+                    db.update(TasksContract.TABLE_NAME, values, selectionCriteria, selectionArgs)
+            }
+
+            TIMINGS -> {
+                val db = AppDatabase.getInstance(context!!).writableDatabase
+                count = db.update(TimingsContract.TABLE_NAME, values, selection, selectionArgs)
+            }
+//            Performing the update on a single row..!
+            TIMINGS_ID -> {
+                val db = AppDatabase.getInstance(context!!).writableDatabase
+                val id = TimingsContract.getId(uri)
+                selectionCriteria = "${TimingsContract.Columns.ID} = $id"
+
+                if (selection != null && selection.isNotEmpty()) {
+                    selectionCriteria += " AND ($selection)"
+                }
+
+                count =
+                    db.update(TimingsContract.TABLE_NAME, values, selectionCriteria, selectionArgs)
+            }
+
+            else -> {
+                throw IllegalArgumentException("Unknown URI:$uri")
+            }
+
+        }
+
+        if (count > 0) {
+//            Something was Updated
+            Log.d(TAG, "Update :Setting notifyChange with $uri ")
+//            call the ContextResolver to notify the change,
+            context?.contentResolver?.notifyChange(uri, null)
+        }
+
+        Log.d(TAG, "Exiting update function returning count...! :$count")
+        return count
+    }
+            
+```
+A summary of the queryBuilder.query constructor
+<br>
+**queryBuilder** >> "SELECT ______ FROM Tasks WHERE (id = 'taskId')" //taskId is a Long
+<br>
+**db** >> reference to our database to query from
+<br>
+**projection** >> "col, col, col, ..." An Array of columns that should be included for each row retrieved
+<br>
+**selection** >> "WHERE col = value" selection specifies the criteria for selecting rows
+<br>
+**selectionArgs** >> replaces placeholders in the selection clause
+<br>
+**groupBy** >> "GROUP BY col, col, ..." combines data for rows with identical values in all included columns
+<br>
+**having** >> "HAVING condition" eg: 'COUNT(_id) **<** 10'. Adds a condition to the GROUP BY results
+<br>
+**sortOrder** >> "ORDER BY col, col,..." Orders the rows by a their value in a column/columns
+<br>
+The output with constructor elements, and output in an example instance below from a match of TASKS_ID
+> SELECT   projection    FROM Tasks WHERE (_id = 'taskId') ORDER BY sortOrder <br>
+> SELECT Name, SortOrder FROM Tasks WHERE (_id = '1')      ORDER BY SortOrder <br>
+       
+### Cursor Constructor..!
+In the case of our cursor constructor:
+```
+val cursor = queryBuilder.query(db, projection, selection, selectionArgs, null, null, sortOrder)
+```
+- db was created in our query(){...} code.
+<br>
+- (at this point) projection was coded into our cursor's contentResolver in MainActivity and passed in the query() constructor.
+<br>
+- selection is null and not used (instead added via our when(match) directly into queryBuilder).
+<br>
+- selectionArgs is null and not used.
+<br>
+- groupBy was hardcoded as null.
+<br>
+- having was hardcoded as null.
+<br>
+- (at this point) sortOrder was coded into our cursor's contentResolver in MainActivity and passed in the query() constructor.
+<br>
+This creates a new cursor, and is returned to create the cursor in MainActivity, and subsequently used.
