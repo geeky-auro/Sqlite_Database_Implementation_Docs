@@ -1,7 +1,7 @@
 # AppProvider
 Content Provider for the TaskTimer app.This is the only class that knows about the **[AppDatabase]**
 
-## What are content providers?
+## What are Content Providers?
 Content Providers are a very important component that serves the purpose of a relational database to store the data of applications.<br>
 The role of the content provider in the android system is like a central repository in which data of the applications are stored,<br>
 and it facilitates other applications to securely access and modifies that data based on the user requirements.<br>
@@ -56,7 +56,7 @@ The following are two example URIs and their component parts:
          / \ /                        \
          urn:example:animal:ferret:nose
 
-For More Information refer : https://datatracker.ietf.org/doc/html/rfc3986#section-3
+For More Information refer : https://datatracker.ietf.org/doc/html/rfc3986#section-3 <br>
 Variable Declaration in AppProvider:
 ```
   const val CONTENT_AUTHORITY = "com.aurosaswatraj.tasktimer.provider"
