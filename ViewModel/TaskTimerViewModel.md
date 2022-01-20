@@ -1,0 +1,104 @@
+# TaskTimerViewModel
+The view model class that's going to provide it with data.
+Instead of extending the ViewModel class we'll extend an Android view model.<br>
+Both classes work the same way.<br>
+AndroidViewModel is a subclass of ViewModel,but it also has an application property.<br>
+That's going to be useful if we want to access the database,because we'll need an application to get a ContentResolver.<br>
+
+## Step 1.0:Adding Dependencies
+    ```
+    def lifecycle_version='2.1.0-alpha02'
+    // ViewModel and LiveData
+    implementation "androidx.lifecycle:lifecycle-extensions:$lifecycle_version"
+    ```
+## Step 1.1:Import the following packages
+```
+import android.app.Application
+import android.database.ContentObserver
+import android.database.Cursor
+import android.net.Uri
+import android.os.Handler
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+```
+## Step 2.0:Creating a Class
+Create a Class called **TaskTimerViewModel.md**
+Extend the class to **AndroidViewModel class**
+**Note:** Application context aware ViewModel.
+Subclasses must have a constructor which accepts Application as the only parameter.<br>
+Also **Application class** is the Base class for maintaining global application state.<br>
+Use the primary constructor for getting a reference of Application then use that in  like **AndroidViewModel(application)**<br>
+```
+class TaskTimerViewModel(application: Application) : AndroidViewModel(application){
+<!-- Body goes here! -->
+}
+```
+## Step 2.1:Declaration of Variables
+We want it to make a cursor available via a LiveData object.
+     * When the cursor changes, observers will be notified of that change.<br>
+     * The observer will be MainActivityFragment.<br>
+     * When it gets notified of a change,it'll swap the cursor in the RecyclerviewAdapter. <br>
+```
+    private val databaseCursor = MutableLiveData<Cursor>()
+    // Defining our cursor as a LiveData cursor
+    val cursor: LiveData<Cursor>
+    // Return the database cursor in the get method.
+    get() = databaseCursor
+```
+## Step 2.2:Create a function called loadTask()
+Our ViewModel will load the data from the database then update the database cursor LiveData object.<br>
+Code for fetching data from the ContentProvider.<br>
+```
+ private fun loadTask() {
+        val projection = arrayOf(
+            TasksContract.Columns.ID,
+            TasksContract.Columns.TASK_NAME,
+            TasksContract.Columns.TASK_DESCRIPTION,
+            TasksContract.Columns.TASK_SORT_ORDER
+        )
+
+//      <order by>Tasks.sortOrder, Tasks.Name
+        val sortOrder ="${TasksContract.Columns.TASK_SORT_ORDER}, ${TasksContract.Columns.TASK_NAME}"
+//      Define our cursor using to projection array and the sort order.
+        val cursor = getApplication<Application>().contentResolver.query(
+            TasksContract.CONTENT_URI, projection, null, null,
+            sortOrder
+        )
+//      setting the database cursor value.
+        databaseCursor.postValue(cursor)
+    }
+```
+## Step 2.3 Use a init block
+```
+init {
+        Log.d(TAG, "TaskTimerViewModel: Created.")
+//      Register the observer
+        getApplication<Application>().contentResolver.registerContentObserver(
+        TasksContract.CONTENT_URI,
+        true, contentObserver
+        )
+        loadTask()
+    }
+```
+## Step 2.4:Declare the instance of Content Observer
+```
+private val contentObserver = object : ContentObserver(Handler()) {
+        override fun onChange(selfChange: Boolean, uri: Uri?) {
+            Log.d(TAG, "contentObserver.onChange: called. uri is $uri")
+            loadTask()
+        }
+    }
+```
+Receives call backs for changes to content. Must be implemented by objects which are added to a ContentObservable.<br>
+When a change is notified, the onChange function will be called.<br>
+We log the fact, then we call loadTasks to reload the data,and update the current cursor LiveData.<br>
+**handler** – The handler to run onChange on, or null if none.
+## Step 2.5:override the onCleared Function
+That function gets called when the ViewModel's no longer used and can be destroyed.
+Note we Refister ContentObserver in init block and we unregister the ContentObserver in **onCleared** Function
+```
+override fun onCleared() {
+        getApplication<Application>().contentResolver.unregisterContentObserver(contentObserver)
+    }
+```
