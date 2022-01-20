@@ -102,3 +102,4 @@ override fun onCleared() {
         getApplication<Application>().contentResolver.unregisterContentObserver(contentObserver)
     }
 ```
+https://docs.google.com/presentation/d/1tagC32Vxn4CAHSbspcSrWiCXxhgPnZGijnD1tfLlCLw/edit?usp=sharing
