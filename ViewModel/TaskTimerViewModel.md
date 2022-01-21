@@ -156,7 +156,7 @@ fun deleteTask(taskId:Long) {
 To run processes in background thread we use Kotlin coroutines.<br>
 **Coroutines** allow us to create asynchronous programs in a fluent way.<br>
 The Kotlin language gives us basic constructs but can get access to more useful coroutines with the **kotlinx-coroutines-core** library. <br>
-To use coroutines in your Android project, add the following dependency to your app's build.gradle file:
+To use [**coroutines**](https://www.baeldung.com/kotlin/threads-coroutines#kotlin-extension) in your Android project, add the following dependency to your app's build.gradle file:
 ```
 dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.9'
