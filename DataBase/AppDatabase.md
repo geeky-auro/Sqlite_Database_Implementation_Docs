@@ -66,6 +66,8 @@ This Method executes above sql query.
 Singleton class only allows a single instance to be create.<br>
 To make a class singleton mark the constructor as private
 
+<img src="https://img.shields.io/badge/-Template-brightgreen" alt="Template"/>
+
 > Use this class as a template for singleton classes..!
 
 ```
