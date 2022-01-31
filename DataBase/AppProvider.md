@@ -248,7 +248,7 @@ The concept of ‘lazy initialization’ was designed to prevent unnecessary ini
 //        Database to know the selection criteria
         var selectionCriteria: String
         when (match) {
-//            performing Update against the whole table..!
+//            performing delete against the whole table..!
             TASKS -> {
                 val db = AppDatabase.getInstance(context!!).writableDatabase
                 count = db.delete(TasksContract.TABLE_NAME, selection, selectionArgs)
@@ -544,6 +544,69 @@ And
 ```
 return returnUri
 ```
+
+### delete Method()
+**Convenience method for deleting rows in the database.** <br>
+Return type: **Int**
+
+Parameters used:- <br>
+**table**	String: the table to delete from <br>
+**whereClause**	String: the optional WHERE clause to apply when deleting. Passing null will delete all rows.<br>
+**whereArgs**	String: You may include ?s in the where clause, which will be replaced by the values from whereArgs. The values will be bound as Strings.<br>
+
+``` 
+val match=uriMatcher.match(uri) 
+``` 
+
+Matcher is used to decide what matcher has been passed..!
+
+ **Database to count how many rows were updated?** 
+ ```
+ var count: Int
+ ```
+ **Database to know the selection criteria** 
+ ```
+ var selectionCriteria: String
+ ```
+Following is the code snippet described with inline comments..
+```
+ when (match) {
+//            performing delete against the whole table..!
+            TASKS -> {
+                val db = AppDatabase.getInstance(context!!).writableDatabase
+                count = db.delete(TasksContract.TABLE_NAME, selection, selectionArgs)
+            }
+//            Performing the update on a single row..!
+            TASKS_ID -> {
+                val db = AppDatabase.getInstance(context!!).writableDatabase
+                val id = TasksContract.getId(uri)
+                selectionCriteria = "${TasksContract.Columns.ID} = $id"
+
+                if (selection != null && selection.isNotEmpty()) {
+                    selectionCriteria += " AND ($selection)"
+                }
+
+                count = db.delete(TasksContract.TABLE_NAME, selectionCriteria, selectionArgs)
+            }
+```
+
+### Check if something was deleted then
+```
+if (count > 0) {
+            // something was deleted
+            Log.d(TAG, "delete: Setting notifyChange with $uri")
+            context?.contentResolver?.notifyChange(uri, null)
+        }
+```
+
+count has been initialized inside **when block** <br>
+### Finally return the count
+```
+return count
+```
+
+
+
 
 
 
