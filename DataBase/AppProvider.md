@@ -10,6 +10,16 @@ and it facilitates other applications to securely access and modifies that data 
 
 In order to share the data, content providers have certain permissions that are used to grant or restrict the rights to other applications to interfere with the data.<br>
 
+## Before you start building
+**1)** Decide if you need a content provider. You need to build a content provider if you want to provide one or more of the following features:<br>
+-You want to offer complex data or files to other applications.<br>
+-You want to allow users to copy complex data from your app into other apps.<br>
+-You want to provide custom search suggestions using the search framework.<br>
+-You want to expose your application data to widgets.<br>
+-You want to implement the **AbstractThreadedSyncAdapter**,**CursorAdapter**, or **CursorLoader** classes.<br>
+
+
+
 <img src="https://media.geeksforgeeks.org/wp-content/uploads/20200914015720/StructureofContentProvider-660x403.png" alt="Content Provider"/>
 
 ## Content URI
@@ -140,10 +150,9 @@ The concept of ‘lazy initialization’ was designed to prevent unnecessary ini
     ): Cursor? {
         Log.d(TAG, "query called with uri $uri")
         val match = uriMatcher.match(uri)
-        //        matcher is used to decide what matcher has been passed.>!
-        Log.d(TAG, "query match is $match")
-//        use a query builder to build the query that will be executed by the database
-        val queryBuilder = SQLiteQueryBuilder()
+        //Matcher is used to decide what matcher has been passed.>!
+        //Use a query builder to build the query that will be executed by the database
+         val queryBuilder = SQLiteQueryBuilder()
 //        Copy paste the code..!
         when (match) {
             TASKS -> queryBuilder.tables = TasksContract.TABLE_NAME // SELECT ______ FROM Tasks
@@ -154,7 +163,7 @@ The concept of ‘lazy initialization’ was designed to prevent unnecessary ini
                 queryBuilder.appendWhere("${TasksContract.Columns.ID} = ") // SELECT ______ FROM Tasks WHERE (_id =)      // <-- change method
                 queryBuilder.appendWhereEscapeString("$taskId") // SELECT ______ FROM Tasks WHERE (id = 'taskId')
             }
-            //queryBuilder.appendWhereEscapeString() is used to append values not append entire where clause
+            
             TIMINGS -> queryBuilder.tables = TimingsContract.TABLE_NAME
 
             TIMINGS_ID -> {
@@ -361,6 +370,231 @@ The concept of ‘lazy initialization’ was designed to prevent unnecessary ini
     }
             
 ```
+### onCreate Method()
+``` 
+val match=uriMatcher.match(uri) 
+``` 
+
+Matcher is used to decide what matcher has been passed..!
+
+``` 
+val queryBuilder = SQLiteQueryBuilder() 
+```
+ Use a query builder to build the query that will be executed by the database
+
+In the following code segment...
+```
+when (match) {
+            TASKS -> queryBuilder.tables = TasksContract.TABLE_NAME 
+
+            TASKS_ID -> {
+                queryBuilder.tables = TasksContract.TABLE_NAME 
+                val taskId = TasksContract.getId(uri) 
+                queryBuilder.appendWhere("${TasksContract.Columns.ID} = ")      
+                queryBuilder.appendWhereEscapeString("$taskId") 
+            }
+
+```
+
+``` 
+TASKS -> queryBuilder.tables = TasksContract.TABLE_NAME 
+```
+If the incoming URI was for all of table
+> Ex : SELECT ______ FROM Tasks
+
+In the next following Code :-
+```
+        TASKS_ID -> {
+                queryBuilder.tables = TasksContract.TABLE_NAME 
+                val taskId = TasksContract.getId(uri) 
+                queryBuilder.appendWhere("${TasksContract.Columns.ID} =")    
+                queryBuilder.appendWhereEscapeString("$taskId") 
+            }
+```
+
+The incoming URI was for a single row
+
+``` 
+queryBuilder.tables = TasksContract.TABLE_NAME 
+```
+> SELECT _____ FROM Tasks
+
+```  
+val taskId = TasksContract.getId(uri) 
+```
+> Long of our taskId. E.g. 1
+
+``` 
+queryBuilder.appendWhere("${TasksContract.Columns.ID} = ") 
+```
+> SELECT ______ FROM Tasks WHERE (_id =) 
+
+``` 
+queryBuilder.appendWhereEscapeString("$taskId") 
+```
+> SELECT ______ FROM Tasks WHERE (id = 'taskId')
+
+<img src="https://img.shields.io/badge/-Note-yellow" alt="note"/>
+
+> **queryBuilder.appendWhereEscapeString()** is used to append values not append entire where clause.
+
+And the rest follows the same ... **:)** 
+
+### If the URI is not recognized You should do some error handling here.
+We used the following code snippet for that.. :-)
+```
+else -> throw IllegalArgumentException("Unknown URI: $uri")
+```
+Finally after the end of querying the entire table, and querying for a single record:
+###  call the code to actually do the query
+```
+val db =AppDatabase.getInstance(context!!).readableDatabase
+```
+> Our database in "TaskTimer.db"
+
+```
+val cursor =queryBuilder.query(db, projection, selection, selectionArgs, null, null, sortOrder)
+```
+
+``` 
+return cursor 
+```
+
+Next function to be overrided is :-
+### insert
+
+The **insert()** method adds a new row to the appropriate table, using the values in the ContentValues argument. If a column name is not in the ContentValues argument, you may want to provide a default value for it either in your provider code or in your database schema.
+
+> The code for the matched node (added using addURI), or -1 if there is no matched node.
+
+```
+val match = uriMatcher.match(uri)
+```
+
+>  matcher is used to decide what matcher has been passed..!
+
+Declare the following variables and initialize them lately
+```
+val recordId: Long
+val returnUri: Uri
+```
+
+Perform the match and insert data using the matcher
+
+```
+ when (match) {
+            TASKS -> {
+                val db =
+                    AppDatabase.getInstance(context!!).writableDatabase // Our database in "TaskTimer.db"
+                recordId = db.insert(TasksContract.TABLE_NAME, null, values)
+                if (recordId != -1L) {
+                    returnUri = TasksContract.buildUriFromId(recordId)
+                } else {
+                    throw SQLException("Failed to insert,Uri was $uri")
+                }
+
+            }
+
+        }
+```
+In the following code snippet..
+
+```
+val db = AppDatabase.getInstance(context!!).writableDatabase
+```
+
+> We referred to Our database in "TaskTimer.db"
+
+```
+recordId = db.insert(TasksContract.TABLE_NAME, null, values)
+                if (recordId != -1L) {
+                    returnUri = TasksContract.buildUriFromId(recordId)
+                } else {
+                    throw SQLException("Failed to insert,Uri was $uri")
+                }
+```
+
+> We inserted our values and initialized our returnUri
+
+> insert()-Convenience method for inserting a row into the database 
+and returns the row ID of the newly inserted row, or -1 if an error occurred (long)
+
+### Parameters for insert()
+-<b><span style="color: green;">table</span></b>	String: the table to insert the row into <br>
+-<b><span style="color: green;">nullColumnHack</span></b>	String: optional; may be null. SQL doesn't allow inserting a completely empty row without naming at least one column name. If your provided values is empty, no column names are known and an empty row can't be inserted. If not set to null, the nullColumnHack parameter provides the name of nullable column name to explicitly insert a NULL into in the case where your values is empty. <br>
+-<b><span style="color: green;">values</span></b>	ContentValues: this map contains the initial column values for the row. The keys should be the column names and the values the column values 
+
+### Similarly if there's some error 
+```
+else -> {
+        throw java.lang.IllegalArgumentException("Unknown uri:$uri")
+        }
+```
+
+Finally to end up **insert()** function <br>
+Notify registered observers that several rows have been updated. <br>
+something was inserted
+```
+if (recordId > 0) {
+            Log.d(TAG, "insert: Setting notifyChange with $uri")
+            context?.contentResolver?.notifyChange(uri, null)
+        }
+```
+And
+```
+return returnUri
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 A summary of the queryBuilder.query constructor
 <br>
 **queryBuilder** >> "SELECT ______ FROM Tasks WHERE (id = 'taskId')" //taskId is a Long
