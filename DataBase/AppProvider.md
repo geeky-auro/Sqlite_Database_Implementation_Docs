@@ -708,3 +708,7 @@ val cursor = queryBuilder.query(db, projection, selection, selectionArgs, null, 
 - (at this point) sortOrder was coded into our cursor's contentResolver in MainActivity and passed in the query() constructor.
 <br>
 This creates a new cursor, and is returned to create the cursor in MainActivity, and subsequently used.
+
+# For More Information
+Refer Creating a content provide from 
+[Developer Document](https://developer.android.com/guide/topics/providers/content-provider-creating)
