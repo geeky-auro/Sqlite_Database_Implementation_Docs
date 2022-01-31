@@ -136,6 +136,8 @@ The concept of ‘lazy initialization’ was designed to prevent unnecessary ini
 ```
 <img src="https://img.shields.io/badge/-Override%20Member%20Methods-%23557C55" alt="Override Member" />
 
+<img src="https://img.shields.io/badge/Android%20Studio%20Code-Code-informational" alt="Informational Code"/>
+
 ```
  override fun onCreate(): Boolean {
         /**We cannot create our database instance as it can only be accessed by getInstance method*/
