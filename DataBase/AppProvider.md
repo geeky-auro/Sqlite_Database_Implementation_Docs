@@ -461,7 +461,7 @@ return cursor
 ```
 
 Next function to be overrided is :-
-### insert
+### insert Method()
 
 The **insert()** method adds a new row to the appropriate table, using the values in the ContentValues argument. If a column name is not in the ContentValues argument, you may want to provide a default value for it either in your provider code or in your database schema.
 
