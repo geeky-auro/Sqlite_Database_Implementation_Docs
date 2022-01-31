@@ -605,6 +605,67 @@ count has been initialized inside **when block** <br>
 return count
 ```
 
+### update Method()
+**Convenience method for updating rows in the database.**
+**Return type: Int**
+
+``` 
+val match=uriMatcher.match(uri) 
+``` 
+
+Matcher is used to decide what matcher has been passed..!
+
+> Database to count how many rows were updated?
+
+```
+var count: Int
+```
+
+> Database to know the selection criteria
+
+```
+var selectionCriteria: String
+```
+
+Same snippet
+```
+when (match) {
+//            performing Update against the whole table..!
+            TASKS -> {
+                val db = AppDatabase.getInstance(context!!).writableDatabase
+                count = db.update(TasksContract.TABLE_NAME, values, selection, selectionArgs)
+            }
+//            Performing the update on a single row..!
+            TASKS_ID -> {
+                val db = AppDatabase.getInstance(context!!).writableDatabase
+                val id = TasksContract.getId(uri)
+                selectionCriteria = "${TasksContract.Columns.ID} = $id"
+
+                if (selection != null && selection.isNotEmpty()) {
+                    selectionCriteria += " AND ($selection)"
+                }
+
+                count =
+                    db.update(TasksContract.TABLE_NAME, values, selectionCriteria, selectionArgs)
+            }
+```
+
+If something was updated
+```
+ if (count > 0) {
+//            Something was Updated
+            Log.d(TAG, "Update :Setting notifyChange with $uri ")
+//            call the ContextResolver to notify the change,
+            context?.contentResolver?.notifyChange(uri, null)
+        }
+```
+
+and then return **count**
+
+```
+return count
+```
+
 
 
 
